@@ -48,7 +48,7 @@ jobs:
         python -m build
     
     - name: Store build artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: python-package-distributions-${{ matrix.python-version }}
         path: biocomputing/dist/
@@ -68,7 +68,7 @@ jobs:
     
     steps:
     - name: Download all the dists
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         path: dist
     
@@ -97,7 +97,7 @@ jobs:
     
     steps:
     - name: Download all the dists
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         path: dist
     
@@ -126,7 +126,7 @@ jobs:
     - uses: actions/checkout@v4
     
     - name: Download all artifacts
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
         path: dist
     
