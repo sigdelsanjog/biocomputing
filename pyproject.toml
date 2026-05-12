@@ -30,3 +30,6 @@ Issues = "https://github.com/sigdelsanjog/biocomputing/issues"
 
 [tool.setuptools]
 packages = ["biocomputing"]
+
+[tool.setuptools.package-data]
+biocomputing = ["_lib/*.so"]

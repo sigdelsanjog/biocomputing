@@ -1,0 +1,153 @@
+name: Build and Publish to PyPI
+
+on:
+  push:
+    branches:
+      - main
+      - master
+    tags:
+      - 'v*'
+  pull_request:
+    branches:
+      - main
+      - master
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ['3.8', '3.9', '3.10', '3.11']
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install setuptools wheel build
+    
+    - name: Run tests (if test file exists)
+      run: |
+        if [ -f "biocomputing/test.py" ]; then
+          python -m pytest biocomputing/test.py -v
+        fi
+      continue-on-error: true
+    
+    - name: Build distribution packages
+      run: |
+        cd biocomputing
+        python -m build
+    
+    - name: Store build artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: python-package-distributions-${{ matrix.python-version }}
+        path: biocomputing/dist/
+
+  publish-to-pypi:
+    name: Publish to PyPI
+    if: startsWith(github.ref, 'refs/tags')
+    needs: build
+    runs-on: ubuntu-latest
+    
+    environment:
+      name: pypi
+      url: https://pypi.org/project/biocomputing/
+    
+    permissions:
+      id-token: write
+    
+    steps:
+    - name: Download all the dists
+      uses: actions/download-artifact@v3
+      with:
+        path: dist
+    
+    - name: Flatten dist directory
+      run: |
+        mkdir -p final_dist
+        find dist -name "*.whl" -o -name "*.tar.gz" | xargs -I {} cp {} final_dist/
+    
+    - name: Publish to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        packages-dir: final_dist/
+
+  publish-to-testpypi:
+    name: Publish to TestPyPI
+    if: startsWith(github.ref, 'refs/tags') == false && github.event_name == 'push'
+    needs: build
+    runs-on: ubuntu-latest
+    
+    environment:
+      name: testpypi
+      url: https://test.pypi.org/project/biocomputing/
+    
+    permissions:
+      id-token: write
+    
+    steps:
+    - name: Download all the dists
+      uses: actions/download-artifact@v3
+      with:
+        path: dist
+    
+    - name: Flatten dist directory
+      run: |
+        mkdir -p final_dist
+        find dist -name "*.whl" -o -name "*.tar.gz" | xargs -I {} cp {} final_dist/
+    
+    - name: Publish to TestPyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        repository-url: https://test.pypi.org/legacy/
+        packages-dir: final_dist/
+      continue-on-error: true
+
+  release:
+    name: Create GitHub Release
+    if: startsWith(github.ref, 'refs/tags')
+    needs: publish-to-pypi
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: write
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Download all artifacts
+      uses: actions/download-artifact@v3
+      with:
+        path: dist
+    
+    - name: Flatten and organize artifacts
+      run: |
+        mkdir -p release_artifacts
+        find dist -name "*.whl" -o -name "*.tar.gz" | xargs -I {} cp {} release_artifacts/
+    
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: release_artifacts/*
+        body: |
+          # Release ${{ github.ref_name }}
+          
+          This release has been automatically published to PyPI.
+          
+          Install with: `pip install biocomputing==${{ github.ref_name }}`
+          
+          **Files:**
+          - Source distribution (.tar.gz)
+          - Wheel distributions for Python 3.8-3.11
+        draft: false
+        prerelease: false

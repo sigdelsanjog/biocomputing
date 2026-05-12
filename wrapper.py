@@ -5,11 +5,18 @@ This module provides Python bindings to C DNA generator libraries using ctypes.
 
 import ctypes
 import os
+import sys
 from pathlib import Path
 
 # Get the directory where the shared libraries are located
-# Libraries are in the biocomputing_core directory (sibling to biocomputing)
-LIB_DIR = Path(__file__).parent.parent / "biocomputing_core"
+# First, try to find pre-downloaded libraries in the package _lib directory
+_PACKAGE_DIR = Path(__file__).parent
+_LIB_DIR = _PACKAGE_DIR / "_lib"
+
+# Fallback to biocomputing_core directory if _lib doesn't exist
+# (for local development without pip install)
+if not _LIB_DIR.exists():
+    _LIB_DIR = Path(__file__).parent.parent / "biocomputing_core"
 
 # Define the return structure
 class DNAResult(ctypes.Structure):
@@ -36,15 +43,22 @@ class DNAGenerator:
             self._setup_parallel()
     
     def _load_library(self, lib_name):
-        """Load a shared library from the biocomputing_core directory."""
-        lib_path = LIB_DIR / lib_name
+        """Load a shared library from the _lib directory."""
+        lib_path = _LIB_DIR / lib_name
         
         if not lib_path.exists():
-            raise FileNotFoundError(
-                f"Library {lib_name} not found at {lib_path}\n"
-                f"Please run 'make' in {LIB_DIR} to build the C libraries.\n"
-                f"Instructions: https://github.com/sigdelsanjog/biocomputing_core"
+            error_msg = (
+                f"Library {lib_name} not found at {lib_path}\n\n"
+                f"To fix this issue, you have two options:\n"
+                f"1. Install via pip (recommended):\n"
+                f"   pip install biocomputing\n\n"
+                f"2. For local development:\n"
+                f"   - Clone the biocomputing_core repository\n"
+                f"   - Run: make -C biocomputing_core\n"
+                f"   - Libraries will be auto-detected\n\n"
+                f"Repository: https://github.com/sigdelsanjog/biocomputing_core"
             )
+            raise FileNotFoundError(error_msg)
         
         try:
             return ctypes.CDLL(str(lib_path))
