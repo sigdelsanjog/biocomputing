@@ -2,7 +2,7 @@
 Example usage of biocomputing package
 """
 
-from biocomputing import DNAGenerator, generate_sequential, generate_parallel
+from biocomputing.biocomputing import DNAGenerator, generate_sequential, generate_parallel
 
 
 def main():

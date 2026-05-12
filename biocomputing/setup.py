@@ -23,7 +23,7 @@ class DownloadLibrariesCommand(install):
         print("="*70 + "\n")
         
         try:
-            from biocomputing.download_libs import download_libraries, verify_libraries
+            from biocomputing.biocomputing.download_libs import download_libraries, verify_libraries
             
             # Get the biocomputing package directory
             biocomputing_dir = Path(__file__).parent / "biocomputing"
