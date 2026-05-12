@@ -43,9 +43,7 @@ jobs:
       continue-on-error: true
     
     - name: Build distribution packages
-      run: |
-        cd biocomputing
-        python -m build
+      run: python -m build
     
     - name: Store build artifacts
       uses: actions/upload-artifact@v4
@@ -55,7 +53,7 @@ jobs:
 
   publish-to-pypi:
     name: Publish to PyPI
-    if: startsWith(github.ref, 'refs/tags')
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags'))
     needs: build
     runs-on: ubuntu-latest
     
@@ -67,15 +65,60 @@ jobs:
       id-token: write
     
     steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install setuptools wheel build
+    
+    - name: Update version for dev releases (main branch)
+      if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+      run: |
+        # Add dev version suffix for main branch pushes
+        BUILD_NUM=${{ github.run_number }}
+        TIMESTAMP=$(date +%Y%m%d)
+        DEV_VERSION=".dev${TIMESTAMP}${BUILD_NUM}"
+        
+        # Update setup.py
+        sed -i "s/version=\"\(.*\)\"/version=\"\1${DEV_VERSION}\"/" setup.py
+        
+        # Update pyproject.toml
+        sed -i "s/version = \"\(.*\)\"/version = \"\1${DEV_VERSION}\"/" pyproject.toml
+        
+        echo "✅ Updated to dev version"
+        grep "version" setup.py | head -1
+    
+    - name: Build distribution packages (for PyPI release)
+      run: |
+        python -m pip install --upgrade pip
+        pip install setuptools wheel build
+        python -m build
+    
     - name: Download all the dists
       uses: actions/download-artifact@v4
       with:
-        path: dist
+        path: old_dist
     
-    - name: Flatten dist directory
+    - name: Prepare final distributions
       run: |
+        # Use newly built packages (with dev version if needed)
         mkdir -p final_dist
-        find dist -name "*.whl" -o -name "*.tar.gz" | xargs -I {} cp {} final_dist/
+        cp dist/*.whl final_dist/ 2>/dev/null || true
+        cp dist/*.tar.gz final_dist/ 2>/dev/null || true
+        
+        # If no new build (tag release), use artifacts from build job
+        if [ $(ls final_dist/ | wc -l) -eq 0 ]; then
+          find old_dist -name "*.whl" -o -name "*.tar.gz" | xargs -I {} cp {} final_dist/
+        fi
+        
+        echo "Packages to publish:"
+        ls -lh final_dist/
     
     - name: Publish to PyPI
       uses: pypa/gh-action-pypi-publish@release/v1
@@ -83,8 +126,8 @@ jobs:
         packages-dir: final_dist/
 
   publish-to-testpypi:
-    name: Publish to TestPyPI
-    if: startsWith(github.ref, 'refs/tags') == false && github.event_name == 'push'
+    name: Publish to TestPyPI (for testing)
+    if: github.event_name == 'pull_request'
     needs: build
     runs-on: ubuntu-latest
     
@@ -114,8 +157,8 @@ jobs:
       continue-on-error: true
 
   release:
-    name: Create GitHub Release
-    if: startsWith(github.ref, 'refs/tags')
+    name: Create GitHub Release (Production Releases Only)
+    if: startsWith(github.ref, 'refs/tags/v')
     needs: publish-to-pypi
     runs-on: ubuntu-latest
     
