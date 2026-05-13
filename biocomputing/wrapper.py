@@ -18,6 +18,54 @@ _LIB_DIR = _PACKAGE_DIR / "_lib"
 if not _LIB_DIR.exists():
     _LIB_DIR = Path(__file__).parent.parent / "biocomputing_core"
 
+
+def _ensure_libraries_available():
+    """
+    Ensure that the required .so files are available.
+    Download them if they don't exist.
+    """
+    required_libs = ["libdna_sequential.so", "libdna_parallel.so"]
+    
+    # Check if all libraries exist
+    all_present = True
+    for lib_name in required_libs:
+        if not (_LIB_DIR / lib_name).exists():
+            all_present = False
+            breakb
+    
+    # If all present, we're good
+    if all_present:
+        return True
+    
+    # Try to download missing libraries
+    try:
+        from . import download_libs
+        
+        print("\n" + "="*70)
+        print("Biocomputing: Downloading C libraries from GitHub...")
+        print("="*70)
+        
+        success = download_libs.download_libraries(
+            github_repo="sigdelsanjog/biocomputing_core",
+            release_tag="latest",
+            target_dir=str(_LIB_DIR)
+        )
+        
+        if success:
+            print("="*70 + "\n")
+            return True
+        else:
+            print("="*70 + "\n")
+            return False
+            
+    except Exception as e:
+        print(f"\nWarning: Could not download libraries: {e}\n")
+        return False
+
+
+# Ensure libraries are available when wrapper is imported
+_ensure_libraries_available()
+
 # Define the return structure
 class DNAResult(ctypes.Structure):
     _fields_ = [
