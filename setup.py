@@ -83,7 +83,7 @@ def download_and_verify_libraries():
 
 setup(
     name="biocomputing",
-    version="1.0.5",
+    version="1.0.6",
     author="Sanjog Sigdel",
     author_email="sigdelsanjog@example.com",
     description="High-performance DNA sequence generator with Python bindings (Sequential & Parallel)",
