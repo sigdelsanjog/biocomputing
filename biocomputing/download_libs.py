@@ -72,7 +72,10 @@ def download_file(url, destination, timeout=30):
     """Download a file from URL with error handling."""
     try:
         print(f"Downloading: {url}")
-        urllib.request.urlretrieve(url, destination, timeout=timeout)
+        # Use urlopen with timeout instead of urlretrieve
+        with urllib.request.urlopen(url, timeout=timeout) as response:
+            with open(destination, 'wb') as out_file:
+                out_file.write(response.read())
         print(f"✓ Downloaded to: {destination}")
         return True
     except urllib.error.URLError as e:

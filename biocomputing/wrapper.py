@@ -31,7 +31,7 @@ def _ensure_libraries_available():
     for lib_name in required_libs:
         if not (_LIB_DIR / lib_name).exists():
             all_present = False
-            breakb
+            break
     
     # If all present, we're good
     if all_present:
