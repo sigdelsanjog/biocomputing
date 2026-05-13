@@ -62,7 +62,7 @@ class DownloadLibrariesCommand(install):
 
 setup(
     name="biocomputing",
-    version="1.0.1",
+    version="1.0.2",
     author="Sanjog Sigdel",
     author_email="sigdelsanjog@example.com",
     description="High-performance DNA sequence generator with Python bindings (Sequential & Parallel)",
