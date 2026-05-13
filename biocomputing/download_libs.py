@@ -9,6 +9,7 @@ import shutil
 import sys
 import urllib.request
 import urllib.error
+import json
 from pathlib import Path
 
 
@@ -40,6 +41,33 @@ def get_platform_name():
     return None, None
 
 
+def get_latest_release_tag(github_repo):
+    """
+    Fetch the latest release tag from GitHub API.
+    
+    Args:
+        github_repo: Repository in format "owner/repo"
+        
+    Returns:
+        str: Latest tag name (e.g., "v1.0.5"), or None if failed
+    """
+    api_url = f"https://api.github.com/repos/{github_repo}/releases/latest"
+    try:
+        print(f"Fetching latest release from {github_repo}...")
+        with urllib.request.urlopen(api_url) as response:
+            data = json.loads(response.read().decode('utf-8'))
+            tag_name = data.get('tag_name')
+            if tag_name:
+                print(f"✓ Latest release: {tag_name}")
+                return tag_name
+            else:
+                print("✗ No tag_name found in release")
+                return None
+    except Exception as e:
+        print(f"✗ Failed to fetch latest release: {e}")
+        return None
+
+
 def download_file(url, destination, timeout=30):
     """Download a file from URL with error handling."""
     try:
@@ -66,6 +94,14 @@ def download_libraries(github_repo="sigdelsanjog/biocomputing_core",
         release_tag: GitHub release tag (default: "latest")
         target_dir: Directory to save libraries (default: biocomputing/_lib)
     """
+    
+    # If "latest" is requested, fetch the actual latest tag from GitHub API
+    if release_tag == "latest":
+        actual_tag = get_latest_release_tag(github_repo)
+        if actual_tag:
+            release_tag = actual_tag
+        else:
+            print("⚠ Could not determine latest release tag. Using 'latest' (may fail)")
     
     os_name, arch = get_platform_name()
     
