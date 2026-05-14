@@ -4,12 +4,11 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "biocomputing"
-version = "1.0.8"
+version = "1.0.9"
 description = "High-performance DNA sequence generator with Python bindings"
 readme = "README.md"
 requires-python = ">=3.6"
 license = {text = "MIT"}
-dynamic = ["optional-dependencies"]
 authors = [
     {name = "Sanjog Sigdel", email = "sanjog.sigdel@ku.edu.np"},
 ]
@@ -26,6 +25,22 @@ classifiers = [
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+]
+
+[project.optional-dependencies]
+web = [
+    "fastapi>=0.95.0",
+    "uvicorn[standard]>=0.21.0",
+    "python-multipart>=0.0.5",
+]
+analysis = [
+    "pandas>=1.0.0",
+    "numpy>=1.19.0",
+]
+dev = [
+    "pytest>=6.0",
+    "pytest-cov>=2.10",
+    "black>=21.0",
 ]
 
 [project.urls]

@@ -205,3 +205,93 @@ def generate_sequential(length):
 def generate_parallel(length):
     """Generate DNA sequence using parallel processing."""
     return _get_generator().generate_parallel(length)
+
+
+# ============================================================================
+# GC Content Calculator Functions
+# ============================================================================
+
+def calculate_gc_content(sequence: str) -> float:
+    """
+    Calculate the GC content of a DNA sequence.
+    
+    GC content is the percentage of G (guanine) and C (cytosine) nucleotides 
+    in a DNA sequence. This is a key metric in genomic analysis.
+    
+    Args:
+        sequence (str): DNA sequence containing A, T, G, C nucleotides
+        
+    Returns:
+        float: GC content as a percentage (0-100)
+        
+    Raises:
+        ValueError: If sequence is empty or contains invalid nucleotides
+        
+    Examples:
+        >>> calculate_gc_content("ATGC")
+        50.0
+        >>> calculate_gc_content("GGGGCCCC")
+        100.0
+        >>> calculate_gc_content("AAAA")
+        0.0
+    """
+    if not sequence:
+        raise ValueError("Sequence cannot be empty")
+    
+    # Convert to uppercase for case-insensitive matching
+    seq_upper = sequence.upper()
+    
+    # Validate sequence contains only valid nucleotides
+    valid_nucleotides = set("ATGCN")
+    if not all(n in valid_nucleotides for n in seq_upper):
+        invalid_chars = set(seq_upper) - valid_nucleotides
+        raise ValueError(f"Invalid nucleotides in sequence: {invalid_chars}")
+    
+    # Count G and C (excluding N which is unknown)
+    gc_count = seq_upper.count('G') + seq_upper.count('C')
+    total_count = len(seq_upper)
+    
+    # Calculate percentage
+    gc_percent = (gc_count / total_count) * 100
+    
+    return gc_percent
+
+
+def calculate_gc_content_batch(sequences: list) -> list:
+    """
+    Calculate GC content for multiple sequences.
+    
+    Efficiently processes a list of DNA sequences and returns GC content
+    for each one. Errors for individual sequences don't stop processing.
+    
+    Args:
+        sequences (list): List of DNA sequence strings
+        
+    Returns:
+        list: List of dictionaries with keys 'sequence', 'gc_content', 
+              'length' (or 'error' if there was a validation error)
+        
+    Examples:
+        >>> seqs = ["ATGC", "GGGG"]
+        >>> results = calculate_gc_content_batch(seqs)
+        >>> len(results)
+        2
+        >>> results[0]['gc_content']
+        50.0
+    """
+    results = []
+    for sequence in sequences:
+        try:
+            gc = calculate_gc_content(sequence)
+            results.append({
+                "sequence": sequence,
+                "gc_content": gc,
+                "length": len(sequence)
+            })
+        except ValueError as e:
+            results.append({
+                "sequence": sequence,
+                "error": str(e)
+            })
+    
+    return results

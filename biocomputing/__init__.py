@@ -16,6 +16,18 @@ __version__ = "1.0.0"
 __author__ = "Sanjog Sigdel"
 __email__ = "sigdelsanjog@example.com"
 
-from .wrapper import DNAGenerator, generate_sequential, generate_parallel
+from .wrapper import (
+    DNAGenerator, 
+    generate_sequential, 
+    generate_parallel,
+    calculate_gc_content,
+    calculate_gc_content_batch
+)
 
-__all__ = ["DNAGenerator", "generate_sequential", "generate_parallel"]
+__all__ = [
+    "DNAGenerator", 
+    "generate_sequential", 
+    "generate_parallel",
+    "calculate_gc_content",
+    "calculate_gc_content_batch"
+]
