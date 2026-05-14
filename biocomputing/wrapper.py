@@ -295,3 +295,163 @@ def calculate_gc_content_batch(sequences: list) -> list:
             })
     
     return results
+
+
+# ============================================================================
+# FASTA File Processing Functions (.fna/.faa files)
+# ============================================================================
+
+def clean_fna_sequence(sequence: str) -> str:
+    """
+    Clean a nucleotide sequence by removing 'N' characters (unknown bases).
+    
+    Args:
+        sequence (str): Raw DNA sequence with possible 'N' characters
+        
+    Returns:
+        str: Cleaned sequence with all 'N' characters removed
+        
+    Examples:
+        >>> clean_fna_sequence("ATGNNNGATC")
+        'ATGGATC'
+    """
+    return sequence.upper().replace('N', '')
+
+
+def parse_fna_file(file_content: str) -> dict:
+    """
+    Parse a FASTA Nucleic Acid (.fna) file and extract header and sequence.
+    
+    Handles multi-line sequences commonly found in FASTA files.
+    Removes the header line (starting with '>') and concatenates all sequence lines.
+    
+    Args:
+        file_content (str): Complete content of the .fna file
+        
+    Returns:
+        dict: Dictionary with keys:
+            - 'header': The FASTA header line (without '>')
+            - 'sequence': The concatenated sequence (only ATGCN)
+            - 'raw_sequence': The raw sequence before cleaning
+            
+    Raises:
+        ValueError: If file is not a valid FASTA format
+        
+    Examples:
+        >>> content = ">NC_000001.11 Homo sapiens chromosome 1\\nATGCATGC"
+        >>> result = parse_fna_file(content)
+        >>> result['header']
+        'NC_000001.11 Homo sapiens chromosome 1'
+        >>> result['sequence']
+        'ATGCATGC'
+    """
+    lines = file_content.strip().split('\n')
+    
+    if not lines:
+        raise ValueError("File is empty")
+    
+    if not lines[0].startswith('>'):
+        raise ValueError("Invalid FASTA format: first line must start with '>'")
+    
+    header = lines[0][1:]  # Remove '>' character
+    
+    # Concatenate all sequence lines (everything after the header)
+    sequence_lines = []
+    for line in lines[1:]:
+        line = line.strip()
+        if line and not line.startswith('>'):  # Ignore empty lines and additional headers
+            sequence_lines.append(line)
+    
+    if not sequence_lines:
+        raise ValueError("No sequence data found in FASTA file")
+    
+    raw_sequence = ''.join(sequence_lines)
+    
+    # Validate that sequence contains only valid nucleotide characters
+    valid_chars = set("ATGCN")
+    invalid_chars = set(raw_sequence.upper()) - valid_chars
+    if invalid_chars:
+        raise ValueError(f"Invalid nucleotide characters in sequence: {invalid_chars}")
+    
+    return {
+        'header': header,
+        'raw_sequence': raw_sequence,
+        'sequence': raw_sequence  # Store raw for reference
+    }
+
+
+def analyze_fna_file(file_content: str) -> dict:
+    """
+    Complete analysis of a .fna file: parse, clean, and calculate GC content.
+    
+    This function:
+    1. Parses the FASTA header
+    2. Extracts the nucleotide sequence
+    3. Removes 'N' (unknown) characters
+    4. Calculates GC content on cleaned sequence
+    5. Provides statistics on cleaning
+    
+    Args:
+        file_content (str): Complete content of the .fna file
+        
+    Returns:
+        dict: Analysis results with keys:
+            - 'header': Original FASTA header
+            - 'raw_sequence_length': Length before cleaning
+            - 'n_count': Number of 'N' characters removed
+            - 'cleaned_sequence_length': Length after removing Ns
+            - 'gc_content': GC content percentage of cleaned sequence
+            - 'gc_count': Count of G and C nucleotides in cleaned sequence
+            - 'at_content': AT content percentage of cleaned sequence
+            - 'a_count': Count of A nucleotides
+            - 't_count': Count of T nucleotides
+            
+    Raises:
+        ValueError: If file format is invalid or analysis fails
+        
+    Examples:
+        >>> content = ">NC_000001.11 Test\\nATGCNNNGATC"
+        >>> result = analyze_fna_file(content)
+        >>> result['gc_content']
+        33.33...
+        >>> result['n_count']
+        3
+    """
+    # Parse the FASTA file
+    parsed = parse_fna_file(file_content)
+    header = parsed['header']
+    raw_sequence = parsed['raw_sequence'].upper()
+    
+    # Count N's before cleaning
+    n_count = raw_sequence.count('N')
+    
+    # Clean the sequence
+    cleaned_sequence = clean_fna_sequence(raw_sequence)
+    
+    if not cleaned_sequence:
+        raise ValueError("Sequence is empty after removing 'N' characters")
+    
+    # Calculate GC content on cleaned sequence
+    gc_content = calculate_gc_content(cleaned_sequence)
+    gc_count = cleaned_sequence.count('G') + cleaned_sequence.count('C')
+    
+    # Calculate AT content
+    at_count = cleaned_sequence.count('A') + cleaned_sequence.count('T')
+    at_content = (at_count / len(cleaned_sequence)) * 100
+    
+    # Individual counts
+    a_count = cleaned_sequence.count('A')
+    t_count = cleaned_sequence.count('T')
+    
+    return {
+        'header': header,
+        'raw_sequence_length': len(raw_sequence),
+        'n_count': n_count,
+        'cleaned_sequence_length': len(cleaned_sequence),
+        'gc_content': round(gc_content, 2),
+        'gc_count': gc_count,
+        'at_content': round(at_content, 2),
+        'at_count': at_count,
+        'a_count': a_count,
+        't_count': t_count
+    }
